@@ -133,10 +133,7 @@ public class InputPage extends VerticalLayout implements View {
     }
 
     private void RemoveHardFilter(Button.ClickEvent clickEvent) {
-
         FilterType = "NONE";
-
-
         for(int i=0;i<CGridLayoutList.size();i++){
             if(CGridLayoutList.get(i).isVisible() == false){
                CGridLayoutList.get(i).setVisible(true);

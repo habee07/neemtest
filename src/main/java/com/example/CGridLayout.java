@@ -14,6 +14,7 @@ import java.util.List;
 final class CGridLayout extends VerticalLayout {
 
      List<CourseGrid> CGridList;
+     Users user = new Users();
     //private final CourseGrid CGrid2;
     private students Astudent;
     private List<String> FilterList;
@@ -21,36 +22,70 @@ final class CGridLayout extends VerticalLayout {
     private StudentDetails studentDetails;
     private StudentYearInfo studentYearInfo;
     private CourseGrid CGrid;
-    boolean changednote;
+    boolean changednotePriv;
+    boolean changednotePub;
+    int noteNum;
+
 
     public CGridLayout(students aStudentsss, List<String> filterlist,String filtertype ) {
         Astudent = aStudentsss;
-        changednote = false;
+        changednotePriv = false;
+        changednotePub = false;
         FilterList = filterlist;
         FilterType = filtertype;
-        Button addNotes = new Button("ADD NOTES");
-        addNotes.setIcon(VaadinIcons.COMMENT_ELLIPSIS_O);
-        Button saveNotes = new Button("Save Changes");
-        saveNotes.setIcon(VaadinIcons.LOCATION_ARROW_CIRCLE);
-        Button cancelNotes = new Button("Cancel");
-        cancelNotes.setIcon(VaadinIcons.MINUS_CIRCLE_O);
-        addNotes.setStyleName("primary");
-        saveNotes.setStyleName("friendly");
-        cancelNotes.setStyleName("danger");
-        TextArea tA = new TextArea();
+        Button addPubNotes = new Button("ADD PUBLIC NOTES");
+        Button addPrivNotes = new Button("ADD PRIVATE NOTES");
+        addPubNotes.setIcon(VaadinIcons.COMMENT_ELLIPSIS_O);
+        addPrivNotes.setIcon(VaadinIcons.COMMENT_ELLIPSIS_O);
+        Button saveNotesPriv = new Button("Save Changes");
+        Button saveNotesPub = new Button("Save Changes");
+        saveNotesPriv.setIcon(VaadinIcons.LOCATION_ARROW_CIRCLE);
+        saveNotesPub.setIcon(VaadinIcons.LOCATION_ARROW_CIRCLE);
+        Button cancelNotesPriv = new Button("Cancel");
+        Button cancelNotesPub = new Button("Cancel");
+        cancelNotesPriv.setIcon(VaadinIcons.MINUS_CIRCLE_O);
+        cancelNotesPub.setIcon(VaadinIcons.MINUS_CIRCLE_O);
+        addPrivNotes.setStyleName("primary");
+        addPubNotes.setStyleName("primary");
+        saveNotesPriv.setStyleName("friendly");
+        saveNotesPub.setStyleName("friendly");
+        cancelNotesPriv.setStyleName("danger");
+        cancelNotesPub.setStyleName("danger");
+        TextArea tAPriv = new TextArea();
+        TextArea tAPub = new TextArea();
 
-        String currN = Astudent.getStNotes().getNote();
-        tA.setWordWrap(true);
-        tA.setHeight("150px"); // fixed size with height larger than the panel
-        tA.setWidth("100%");
-        tA.setValue(currN);
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.setSizeFull();
+        String currNPriv = "";
+        String currNPub = "";
+        for(int i=0; i< Astudent.getStNotes().size();i++){
+            if(user.CurrentUser.UserName.equals(Astudent.getStNotes().get(i).getUser())){
+                currNPriv = Astudent.getStNotes().get(i).getNotePriv();
+                currNPub = Astudent.getStNotes().get(i).getNotePub();
+                noteNum = i;
+
+            }
+        }
+        tAPriv.setWordWrap(true);
+        tAPriv.setHeight("150px"); // fixed size with height larger than the panel
+        tAPriv.setWidth("100%");
+        tAPriv.setValue(currNPriv);
+        tAPriv.setCaption("ADD PRIVATE NOTE:");
+
+
+        tAPub.setWordWrap(true);
+        tAPub.setHeight("150px"); // fixed size with height larger than the panel
+        tAPub.setWidth("100%");
+        tAPub.setValue(currNPub);
+        tAPub.setCaption("ADD PUBLIC NOTE:");
+        HorizontalLayout hl1 = new HorizontalLayout();
+        hl1.setSizeFull();
+        HorizontalLayout hl2 = new HorizontalLayout();
+        hl2.setSizeFull();
 
         studentDetails = new StudentDetails(Astudent);
             studentYearInfo = new StudentYearInfo(Astudent.getHistory());
             addComponents(studentDetails, studentYearInfo);
             CGrid = new CourseGrid(Astudent.getCourse());
+            NotesGrid NoteGrid = new NotesGrid(Astudent.getStNotes());
             /**if (FilterType.contains("SOFT")) {
                 System.out.println("SOFT");
 
@@ -157,47 +192,83 @@ final class CGridLayout extends VerticalLayout {
             }
             **/
         MysqlCon c = new MysqlCon();
-        addNotes.addClickListener(e -> {
-            addComponent(tA);
+        addPrivNotes.addClickListener(e -> {
+            addComponent(tAPriv);
 
-                String note = c.getDBNotes(Astudent.getStudentNumber());
-                System.out.println(note);
-                tA.setValue(note);
-                Astudent.getStNotes().setNote(note);
-                changednote = false;
+                List<String> notes = c.getDBNotes(Astudent.getStudentNumber(), user.CurrentUser.UserName);
+                tAPriv.setValue(notes.get(0));
+            System.out.println(notes.get(0));
+                Astudent.getStNotes().get(noteNum).setNotePriv(notes.get(0));
+                changednotePriv = false;
 
-            hl.addComponents(cancelNotes, saveNotes);
-            hl.setComponentAlignment(saveNotes, Alignment.MIDDLE_CENTER);
-            addComponent(hl);
+            hl1.addComponents(cancelNotesPriv, saveNotesPriv);
+            hl1.setComponentAlignment(saveNotesPriv, Alignment.MIDDLE_CENTER);
+            addComponent(hl1);
+
+        });
+
+
+        addPubNotes.addClickListener(e -> {
+
+            addComponent(tAPub);
+            List<String> notes = c.getDBNotes(Astudent.getStudentNumber(), user.CurrentUser.UserName);
+
+            tAPub.setValue(notes.get(1));
+            Astudent.getStNotes().get(noteNum).setNotePub(notes.get(1));
+            changednotePub = false;
+
+            hl2.addComponents(cancelNotesPub, saveNotesPub);
+            hl2.setComponentAlignment(saveNotesPub, Alignment.MIDDLE_CENTER);
+            addComponent(hl2);
 
         });
 
 
 
+        cancelNotesPriv.addClickListener(e -> {
+                    removeComponent(hl1);
+                    removeComponent(tAPriv);
 
-        cancelNotes.addClickListener(e -> {
-                    removeComponent(hl);
-                    removeComponent(tA);
+
+                }
+        );
+
+        cancelNotesPub.addClickListener(e -> {
+                    removeComponent(hl2);
+
+                    removeComponent(tAPub);
 
                 }
         );
 
 
+        saveNotesPriv.addClickListener(e -> {
+            changednotePriv = true;
+            Astudent.getStNotes().get(noteNum).setNotePriv(tAPriv.getValue());
+            c.updatePrivDBNotes(Astudent.getStudentNumber(),user.CurrentUser.UserName,tAPriv.getValue());
 
-        saveNotes.addClickListener(e -> {
-            changednote = true;
-            NoteInfo temp = new NoteInfo("private", tA.getValue());
-            c.DBNotes(Astudent.getStudentNumber(), temp);
-            Astudent.getStNotes().setNote(tA.getValue());
-            removeComponent(tA);
-            removeComponent(hl);
+            removeComponent(tAPriv);
+            removeComponent(hl1);
 
         });
 
 
+        saveNotesPub.addClickListener(e -> {
+            changednotePriv = true;
+            Astudent.getStNotes().get(noteNum).setNotePub(tAPub.getValue());
+            c.updatePubDBNotes(Astudent.getStudentNumber(),user.CurrentUser.UserName,tAPub.getValue());
 
+            removeComponent(tAPub);
+            removeComponent(hl2);
+
+        });
+
+
+        HorizontalLayout buttonsLayout = new HorizontalLayout();
+        buttonsLayout.addComponents(addPrivNotes, addPubNotes);
         addComponent(CGrid);
-        addComponentsAndExpand(addNotes);
+        addComponent(NoteGrid);
+        addComponentsAndExpand(buttonsLayout);
 
 
         FilterType = "NONE";

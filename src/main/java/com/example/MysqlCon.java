@@ -54,7 +54,7 @@ class MysqlCon{
             String name = "";
             String ProgramCode= "";
             String studentNum= "";
-            NoteInfo ni = new NoteInfo("","");
+            //NoteInfo ni = new NoteInfo("","");
 
             //Class.forName("com.mysql.jdbc.Driver");
             con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
@@ -72,8 +72,7 @@ class MysqlCon{
                     //addItem(new Object[] { rs.getString(1), rs.getInt(2) }, rs.getInt(2));
                 }
                 //System.out.println(studentNumberList.get(i)+"done with names");
-                rs = cs.executeQuery("select * from Courses where `Student_No.`='"+studentNumberList.get(i)+"' and `Calendar_Year` = 2017");
-
+                rs = cs.executeQuery("select * from Courses where `Student_No.`='"+studentNumberList.get(i)+"' and `Calendar_Year`=2017");
                 //System.out.println("QUERY DONE");
                 List<Courses> allCourses = new ArrayList<>();
                 //int size = rs.getFetchSize();
@@ -108,18 +107,19 @@ class MysqlCon{
                     allStudentHistory.add(newHistory);
                 }
 
-
+                List<NoteInfo> allStudentNotes = new ArrayList<>();
                 rs = cs.executeQuery("select * from Notes where `Student_No.`='"+studentNumberList.get(i)+"'");
-
                 while (rs.next()){
-                    String pri = rs.getString(3);
-                    String stNote = rs.getString(4);
-                    ni = new NoteInfo(pri, stNote);
+                    String priNote = rs.getString(3);
+                    String pubNote = rs.getString(4);
+                    String userNote = rs.getString(5);
 
-                    //System.out.println(stNote);
+                    NoteInfo ni = new NoteInfo(priNote, pubNote,userNote);
+                    allStudentNotes.add(ni);
                 }
 
-                students newStudent = new students(studentNum, surname, name, ProgramCode, allCourses, allStudentHistory,ni);
+
+                students newStudent = new students(studentNum, surname, name, ProgramCode, allCourses, allStudentHistory,allStudentNotes);
 
                 allStudents.add(newStudent);
 
@@ -136,16 +136,26 @@ class MysqlCon{
     }
 
 
-    public void updateDBNotes(String stNum, String note){
+
+    public void updatePubDBNotes(String stNum, String userName, String notePublic){
 
         try {
-            //Class.forName("com.mysql.jdbc.Driver");
             //con = DriverManager.getConnection(dbUrl, "username", "password");
             con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
-            PreparedStatement preparedStmt = con.prepareStatement("update Notes SET `Notess` = '"+note+"' WHERE `Student_No.` = '"+stNum+"'");
-            preparedStmt.executeUpdate();
-            //System.out.println(studentNumberList.size()+"*********************got student numbers");
+            cs = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            rs = cs.executeQuery("select 1 from Notes where `Student_No.` = '"+stNum+"' AND `User` = '" +userName+"'");
+
+            if (rs.next() == false) {
+                PreparedStatement newStatement = con.prepareStatement("insert into `Notes` (`Student_No.`, `PrivNotes`, `PubNotes`, `User`)" +
+                        " values ('"+stNum+"','','"+notePublic+"','"+userName+"')");
+                newStatement.executeUpdate();
+
+            } else {
+                PreparedStatement preparedStmt = con.prepareStatement("update Notes SET `PubNotes` = '" + notePublic + "' WHERE `Student_No.` = '" + stNum + "' AND `User` = '" + userName + "'");
+                preparedStmt.executeUpdate();
+            }
             con.close();
+
         } catch (Exception e) {
             String result = e.toString();
 
@@ -154,33 +164,122 @@ class MysqlCon{
 
     }
 
+    public void updatePrivDBNotes(String stNum,  String userName, String notePrivate){
 
-    public String getDBNotes(String stNum){
-        String latestNote = "";
+        try {
+                con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
+                cs = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                rs = cs.executeQuery("select 1 from Notes where `Student_No.` = '"+stNum+"' AND `User` = '" +userName+"'");
+
+                if (rs.next() == false) {
+                    PreparedStatement newStatement = con.prepareStatement("insert into `Notes` (`Student_No.`, `PrivNotes`, `PubNotes`, `User`)" +
+                            " values ('"+stNum+"','"+notePrivate+"','','"+userName+"')");
+                    newStatement.executeUpdate();
+
+                } else {
+                    //con = DriverManager.getConnection(dbUrl, "username", "password");
+                    PreparedStatement preparedStmt = con.prepareStatement("update Notes SET `PrivNotes` = '" + notePrivate + "' WHERE `Student_No.` = '" + stNum + "' AND `User` = '" + userName + "'");
+                    preparedStmt.executeUpdate();
+
+                }
+            con.close();
+
+        } catch (Exception e) {
+            String result = e.toString();
+
+        }
+
+
+    }
+
+    public List<String> getDBNotes(String stNum , String userName){
+        String PrivNote = "";
+        String PubNote = "";
+        List<String> notes = new ArrayList<>();
 
         try {
 
             con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
             cs = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            rs = cs.executeQuery("select * from Notes where `Student_No.` = '"+stNum+"'");
-
-
+            rs = cs.executeQuery("select * from Notes where `Student_No.` = '"+stNum+"' AND `User` = '"+userName+"'");
 
             while (rs.next()){
-                latestNote = rs.getString(4);
-                System.out.println(latestNote);
+                PubNote = rs.getString(4);
+                PrivNote = rs.getString(3);
             }
+
 
 
 
             con.close();
         } catch (Exception e) {
             String result = e.toString();
+            System.out.println("catch ");
 
         }
-        return latestNote;
+        notes.add(PrivNote);
+        notes.add(PubNote);
+        return notes;
 
     }
+
+    public List<Users> getUsers() {
+
+        List<Users> userList = new ArrayList<>();
+        Connection con = null;
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
+
+            Statement cs;
+            ResultSet rs;
+
+            cs = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            rs = cs.executeQuery("select * from Users");
+
+            while (rs.next()) {
+                String Name = rs.getString(3);
+                String userName = rs.getString(2);
+                String Bio = rs.getString(5);
+                String Discipline = rs.getString(7);
+
+                Users temp = new Users(userName, Name, Discipline, Bio);
+                userList.add(temp);
+
+
+            }
+
+            con.close();
+        }
+        catch (Exception e) {
+            String result = e.toString();
+
+        }
+        return userList;
+    }
+
+
+    // ONLY adds new notes
+    public void addNewNote(String stNum, NoteInfo note){
+
+        /**try {
+
+            con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
+            PreparedStatement preparedStmt = con.prepareStatement("insert into `Notes` (`Student_No.`, `Privacy`, `Notes`, `User`)" +
+                    " values ('"+stNum+"','"+note.getPriv()+"','"+note.getNote()+"','"+note.getUser()+"')");
+
+            preparedStmt.executeUpdate();
+            con.close();
+
+        } catch (Exception e) {
+            String result = e.toString();
+
+        }
+
+**/
+    }
+
 
 
     //If NOT Exists in DB, then create. Otherwise Update Current Note in DB.
@@ -193,14 +292,14 @@ class MysqlCon{
             rs = cs.executeQuery("select 1 from Notes where `Student_No.` = '"+stNum+"'");
 
             if (rs.next() == false) {
-                PreparedStatement newStatement = con.prepareStatement("insert into `Notes` (`Student_No.`, `Privacy`, `Notes`, `User`)" +
-                        " values ('"+stNum+"','"+note.getPriv()+"','"+note.getNote()+"','deafault')");
+                PreparedStatement newStatement = con.prepareStatement("insert into `Notes` (`Student_No.`, `PrivNotes`, `PubNotes`, `User`)" +
+                        " values ('"+stNum+"','"+note.getNotePriv()+"','"+note.getNotePub()+"','"+note.getUser()+"')");
                 newStatement.executeUpdate();
 
             } else{
 
-                PreparedStatement preparedStmt = con.prepareStatement("update Notes SET `Notes` = '" + note.getNote() + "' WHERE" +
-                        " `Student_No.` = '" + stNum + "'");
+                PreparedStatement preparedStmt = con.prepareStatement("update Notes SET `PubNotes` = '"+note.getNotePub()+"' , `PrivNotes` = '" +note.getNotePriv()+ "' WHERE" +
+                        " `Student_No.` = '" + stNum + "' AND `User` = '"+note.getUser()+"'");
                 preparedStmt.executeUpdate();
             }
 
@@ -214,5 +313,7 @@ class MysqlCon{
 
 
     }
+
+
 
 }

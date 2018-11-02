@@ -17,12 +17,13 @@ public class Users {
     String Password;
     String Discipline;
     String Gender;
+
     //String dbUrl = "jdbc:mysql://sdp.ms.wits.ac.za:3306/developmentDB?useSSL=false";
     String dbUrl = "jdbc:mysql://docselectrical.co.za:3306/DevelopmentDB";
 
 
 
-    public Users(String userName, String gender, String discipline, String password, String bio, String email, String name) {
+    public Users(String userName, String gender, String discipline, String password, String bio, String email, String name ) {
         UserName = userName;
         Gender = gender;
         Discipline = discipline;
@@ -30,12 +31,21 @@ public class Users {
         Bio = bio;
         Email = email;
         Name = name;
+
     }
 
     public Users(String password, String userName) throws ClassNotFoundException, SQLException {
         UserName = userName;
         Password = password;
         //Do MORE HERE
+    }
+
+    public Users(String userName,String name, String discipline, String bio){
+        UserName = userName;
+        Name = name;
+        Discipline = discipline;
+        Bio = bio;
+
     }
 
     public Users(){
@@ -106,6 +116,7 @@ public class Users {
         Connection con = null;
 
         Class.forName("com.mysql.jdbc.Driver");
+        //con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
         con = DriverManager.getConnection(dbUrl, "DevelopmentDB", "Password");
 
         Statement cs;
